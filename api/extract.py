@@ -16,7 +16,19 @@ class handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         key = os.environ.get("GROQ_API_KEY","")
-        self._ok({"debug_key_prefix": key[:8] if key else "EMPTY"})
+        n = int(self.headers.get("Content-Length",0))
+        body = json.loads(self.rfile.read(n) or b"{}")
+        t = (body.get("transcript") or "hi").strip()
+        p = json.dumps({"model":"llama-3.3-70b-versatile","temperature":0.1,"max_tokens":100,"messages":[{"role":"user","content":t}]}).encode()
+        req = urllib.request.Request(GROQ_URL,data=p,headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},method="POST")
+        try:
+            with urllib.request.urlopen(req,timeout=30) as r:
+                out = json.loads(r.read())
+            self._ok({"success": out["choices"][0]["message"]["content"]})
+        except urllib.error.HTTPError as e:
+            self._ok({"groq_error": e.code, "detail": e.read().decode()})
+        except Exception as e:
+            self._ok({"error": str(e)})
 
     def _ok(self,obj):
         self.send_response(200)
