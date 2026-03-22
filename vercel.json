@@ -1,12 +1,16 @@
 {
   "version": 2,
-  "rewrites": [
-    { "source": "/transcribe",  "destination": "/api/transcribe" },
-    { "source": "/extract",     "destination": "/api/extract" },
-    { "source": "/save",        "destination": "/api/save" },
-    { "source": "/records/:id", "destination": "/api/record" },
-    { "source": "/records",     "destination": "/api/records" },
-    { "source": "/search",      "destination": "/api/search" },
-    { "source": "/(.*)",        "destination": "/public/index.html" }
+  "builds": [
+    { "src": "public/index.html", "use": "@vercel/static" },
+    { "src": "api/*.py", "use": "@vercel/python" }
+  ],
+  "routes": [
+    { "src": "/transcribe",      "dest": "/api/transcribe.py" },
+    { "src": "/extract",         "dest": "/api/extract.py" },
+    { "src": "/save",            "dest": "/api/save.py" },
+    { "src": "/records/([^/]+)", "dest": "/api/record.py?id=$1" },
+    { "src": "/records",         "dest": "/api/records.py" },
+    { "src": "/search",          "dest": "/api/search.py" },
+    { "src": "/(.*)",            "dest": "/public/index.html" }
   ]
 }
