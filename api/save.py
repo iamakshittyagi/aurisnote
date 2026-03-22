@@ -16,8 +16,8 @@ class handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", 0))
         try:
             data = json.loads(self.rfile.read(length) or b"{}")
-        except Exception:
-            self._ok({"error": "Invalid JSON"}, 400); return
+        except Exception as e:
+            self._ok({"error": "Invalid JSON: " + str(e)}, 400); return
 
         if not isinstance(data, dict) or not data.get("patient_name", "").strip():
             self._ok({"error": "patient_name required"}, 400); return
@@ -28,6 +28,10 @@ class handler(BaseHTTPRequestHandler):
                 data[field] = "; ".join(v)
 
         try:
+            url = os.environ.get("KV_REST_API_URL", "NOT_SET")
+            token = os.environ.get("KV_REST_API_TOKEN", "NOT_SET")
+            if url == "NOT_SET" or token == "NOT_SET":
+                self._ok({"error": "Redis env vars missing", "url_set": url != "NOT_SET", "token_set": token != "NOT_SET"}); return
             r = get_redis()
             rid = str(uuid.uuid4())
             now = datetime.utcnow()
@@ -38,7 +42,7 @@ class handler(BaseHTTPRequestHandler):
             r.zadd("ehr:index", {rid: now.timestamp()})
             self._ok({"status": "saved", "id": rid})
         except Exception as e:
-            self._ok({"error": str(e)}, 500)
+            self._ok({"error": str(e), "type": type(e).__name__}, 500)
 
     def _cors(self):
         self.send_response(200)
